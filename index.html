@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinguAjer Studio 3.0</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-sidebar: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent: #2563eb;
+            --accent-light: #dbeafe;
+            --border: #e2e8f0;
+            --success: #10b981;
+        }
+
+        body.dark-mode {
+            --bg-primary: #0f172a; --bg-sidebar: #1e293b; --text-main: #f8fafc;
+            --text-muted: #94a3b8; --accent: #3b82f6; --accent-light: #1e3a8a; --border: #334155;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-primary); color: var(--text-main); height: 100vh; overflow: hidden; display: flex;}
+
+        /* Login Modal Overlay */
+        #auth-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(15, 23, 42, 0.9); display: flex; justify-content: center; align-items: center; z-index: 1000;
+        }
+        .auth-box {
+            background: var(--bg-sidebar); padding: 40px; border-radius: 12px; width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .auth-box input {
+            width: 100%; padding: 12px; margin: 10px 0; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-primary); color: var(--text-main);
+        }
+        .auth-btn {
+            width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 15px;
+        }
+
+        /* Sidebar & Layout */
+        aside { width: 280px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px; overflow-y: auto;}
+        .logo { font-size: 20px; font-weight: 700; color: var(--accent); margin-bottom: 25px; }
+        .nav-section { margin-bottom: 25px; }
+        .nav-section h3 { font-size: 11px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; }
+        .nav-item { padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; margin-bottom: 5px; font-weight: 500; display: flex; justify-content: space-between;}
+        .nav-item:hover, .nav-item.active { background-color: var(--accent-light); color: var(--accent); }
+        .level-badge { font-size: 10px; background: var(--border); padding: 2px 6px; border-radius: 10px; }
+
+        main { flex-grow: 1; display: flex; flex-direction: column; height: 100%; }
+        header { height: 70px; background-color: var(--bg-sidebar); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; padding: 0 40px; }
+        .tabs { display: flex; gap: 20px; }
+        .tab { padding: 10px 20px; cursor: pointer; font-weight: 600; border-bottom: 3px solid transparent; }
+        .tab.active { border-bottom-color: var(--accent); color: var(--accent); }
+        .btn { background: none; border: 1px solid var(--border); padding: 8px 16px; border-radius: 20px; cursor: pointer; color: var(--text-main); font-size: 12px; font-weight: 600;}
+        
+        .content-container { flex-grow: 1; padding: 30px; overflow-y: auto; display: flex; gap: 30px; }
+        
+        /* Reader */
+        .reader-area { flex: 2; max-width: 800px; background: var(--bg-sidebar); padding: 40px; border-radius: 12px; }
+        .clickable-text span { cursor: pointer; padding: 0 2px; border-radius: 4px; font-size: 18px; line-height: 1.8;}
+        .clickable-text span:hover, .clickable-text span.selected { background-color: #fde047; color: #000; }
+
+        /* Dictionary */
+        .dictionary-panel { flex: 1.2; background: var(--bg-sidebar); border-radius: 12px; padding: 25px; position: sticky; top: 0; min-width: 350px; overflow-y: auto; max-height: 85vh;}
+        .example-sentence { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 12px; padding: 10px; background: var(--bg-primary); border-radius: 8px; font-size: 14px;}
+        .play-icon { cursor: pointer; color: var(--accent); background: var(--accent-light); border: none; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;}
+
+        /* Exercises */
+        #exercises-view { display: none; width: 100%; max-width: 800px; margin: 0 auto; background: var(--bg-sidebar); padding: 40px; border-radius: 12px; text-align: center;}
+        .quiz-card { border: 2px solid var(--border); padding: 30px; border-radius: 12px; margin-top: 20px; }
+        .quiz-options { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+        .quiz-option { padding: 15px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .quiz-option:hover { background: var(--accent-light); border-color: var(--accent); }
+    </style>
+</head>
+<body>
+
+    <div id="auth-overlay">
+        <div class="auth-box">
+            <h2 style="margin-bottom: 20px; color: var(--accent);">LinguAjer Studio</h2>
+            <p style="font-size: 14px; margin-bottom: 20px; color: var(--text-muted);">Créer un compte ou se connecter</p>
+            <input type="text" id="username" placeholder="Nom d'utilisateur" required>
+            <input type="email" id="email" placeholder="Adresse e-mail" required>
+            <input type="password" id="password" placeholder="Mot de passe" required>
+            <button class="auth-btn" onclick="login()">Entrer dans le Studio</button>
+            <p style="font-size: 11px; margin-top: 15px; color: var(--text-muted);">*Ceci est une simulation locale.</p>
+        </div>
+    </div>
+
+    <aside>
+        <div class="logo">🌐 LinguAjer Studio</div>
+        <div style="font-size: 12px; margin-bottom: 20px; color: var(--text-muted);">👤 <span id="display-user"></span></div>
+        
+        <div class="nav-section">
+            <h3>Bibliothèque (Niveaux)</h3>
+            <div class="nav-item active" onclick="loadArticle('a1')"><span>Bonjour Paris</span> <span class="level-badge">A1</span></div>
+            <div class="nav-item" onclick="loadArticle('b1')"><span>Culture & Cinéma</span> <span class="level-badge">B1</span></div>
+            <div class="nav-item" onclick="loadArticle('c1')"><span>Politique Écologique</span> <span class="level-badge">C1</span></div>
+        </div>
+
+        <div class="nav-section">
+            <h3>Historique de Lecture</h3>
+            <div id="history-list" style="font-size: 12px; color: var(--text-muted); padding-left: 10px;"></div>
+        </div>
+
+        <div class="nav-section">
+            <h3>Mes Mots Sauvegardés</h3>
+            <div id="saved-words-list" style="font-size: 13px; color: var(--text-muted); padding-left: 10px;"></div>
+        </div>
+    </aside>
+
+    <main>
+        <header>
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('reader')" id="tab-reader">📖 Lecture</div>
+                <div class="tab" onclick="switchTab('exercises')" id="tab-exercises">🧠 Exercices</div>
+            </div>
+            <button class="btn" onclick="document.body.classList.toggle('dark-mode')">🌓 Thème</button>
+        </header>
+
+        <div class="content-container">
+            
+            <div class="reader-area" id="reader-view">
+                <h1 id="art-title" style="font-size: 28px; margin-bottom: 15px;">Titre</h1>
+                <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+                    <button class="btn" onclick="speakText(document.getElementById('art-content').innerText)">▶️ Écouter l'article</button>
+                    <button class="btn" onclick="window.speechSynthesis.pause()">⏸️ Pause</button>
+                </div>
+                <div class="clickable-text" id="art-content"></div>
+            </div>
+
+            <div class="dictionary-panel" id="dict-panel" style="display: none;">
+                <h2 id="selected-word" style="color: var(--accent); text-transform: capitalize; margin-bottom: 10px;">Mot</h2>
+                <button class="btn" onclick="saveWord()" style="margin-bottom: 20px; border-color: var(--success); color: var(--success);">⭐ Sauvegarder pour Exercices</button>
+                
+                <h4 style="font-size: 12px; text-transform: uppercase; margin-bottom: 10px; color: var(--text-muted);">5 Exemples Natifs</h4>
+                <div id="examples-container"></div>
+
+                <h4 style="font-size: 12px; text-transform: uppercase; margin-top: 20px; margin-bottom: 10px; color: var(--text-muted);">Prononciation Réelle (YouGlish)</h4>
+                <div id="youglish-container" style="background: #000; border-radius: 8px; min-height: 200px;">
+                    <a id="yg-widget-1" class="youglish-widget" data-query="bonjour" data-lang="french" data-components="87" data-auto-start="0" data-bkg-color="theme_light" rel="nofollow" href="https://youglish.com">YouGlish</a>
+                </div>
+            </div>
+
+            <div id="exercises-view">
+                <h2>Entraînement de Vocabulaire</h2>
+                <p style="color: var(--text-muted); margin-top: 10px;">Pratiquez les mots que vous avez sauvegardés.</p>
+                
+                <div class="quiz-card" id="quiz-area">
+                    <p>Sauvegardez au moins 3 mots dans le mode lecture pour débloquer les exercices.</p>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script async src="https://youglish.com/public/emb/widget.js" charset="utf-8"></script>
+    <script>
+        // Simulador de Base de Datos
+        const db = {
+            a1: { title: "Une journée à Paris", text: "Bonjour. Je m'appelle Jean et j'habite à Paris. C'est une grande ville très belle. J'aime manger du pain et boire du café le matin." },
+            b1: { title: "Le nouveau cinéma français", text: "L'industrie du cinéma en France traverse une période de transformation intéressante. Les jeunes réalisateurs proposent des idées originales qui défient les traditions classiques." },
+            c1: { title: "Enjeux de la politique écologique", text: "La transition énergétique requiert des mesures drastiques. Les subventions étatiques doivent impérativement s'aligner sur des objectifs de décarbonation à long terme pour endiguer l'effondrement des écosystèmes." }
+        };
+
+        let currentWord = "";
+        let userProfile = JSON.parse(localStorage.getItem('linguaUser')) || null;
+        let savedWords = JSON.parse(localStorage.getItem('linguaWords')) || [];
+        let history = JSON.parse(localStorage.getItem('linguaHistory')) || [];
+
+        // Inicialización y Auth
+        window.onload = () => {
+            if (userProfile) {
+                document.getElementById('auth-overlay').style.display = 'none';
+                document.getElementById('display-user').innerText = userProfile.username;
+                updateSidebar();
+                loadArticle('b1');
+            }
+        };
+
+        function login() {
+            const user = document.getElementById('username').value;
+            if(user.length > 2) {
+                userProfile = { username: user };
+                localStorage.setItem('linguaUser', JSON.stringify(userProfile));
+                document.getElementById('auth-overlay').style.display = 'none';
+                document.getElementById('display-user').innerText = user;
+                updateSidebar();
+                loadArticle('b1');
+            }
+        }
+
+        // Lógica de Artículos
+        function loadArticle(level) {
+            const article = db[level];
+            document.getElementById('art-title').innerText = article.title;
+            
+            // Procesamiento de texto para hacerlo clickeable
+            const contentDiv = document.getElementById('art-content');
+            contentDiv.innerHTML = '';
+            const words = article.text.match(/[\wÀ-ÿ]+|[^\wÀ-ÿ\s]+|\s+/g);
+            
+            words.forEach(word => {
+                if (/\s+/.test(word) || /[^\wÀ-ÿ]+/.test(word)) {
+                    contentDiv.appendChild(document.createTextNode(word));
+                } else {
+                    const span = document.createElement('span');
+                    span.innerText = word;
+                    span.onclick = (e) => handleWordClick(e, word);
+                    contentDiv.appendChild(span);
+                }
+            });
+
+            // Guardar en historial
+            if (!history.includes(article.title)) {
+                history.push(article.title);
+                localStorage.setItem('linguaHistory', JSON.stringify(history));
+                updateSidebar();
+            }
+
+            document.getElementById('dict-panel').style.display = 'none';
+        }
+
+        function handleWordClick(event, word) {
+            document.querySelectorAll('.clickable-text span').forEach(s => s.classList.remove('selected'));
+            event.target.classList.add('selected');
+
+            currentWord = word.toLowerCase();
+            document.getElementById('dict-panel').style.display = 'block';
+            document.getElementById('selected-word').innerText = currentWord;
+
+            // Generar 5 ejemplos dinámicos
+            const exContainer = document.getElementById('examples-container');
+            exContainer.innerHTML = '';
+            const examples = [
+                `C'est la première fois que j'entends le mot ${currentWord}.`,
+                `Les Français utilisent souvent ${currentWord} dans la rue.`,
+                `Il est important de comprendre le contexte de ${currentWord}.`,
+                `Dans un registre formel, ${currentWord} est très apprécié.`,
+                `Je dois mémoriser la prononciation de ${currentWord} pour mon examen.`
+            ];
+
+            examples.forEach(ex => {
+                exContainer.innerHTML += `
+                    <div class="example-sentence">
+                        <button class="play-icon" onclick="speakText('${ex}')">🔊</button>
+                        <span>${ex}</span>
+                    </div>
+                `;
+            });
+
+            // Actualizar YouGlish (Sin Autoplay)
+            if (typeof YG !== 'undefined' && YG.getWidget) {
+                let widget = YG.getWidget("yg-widget-1");
+                if (widget) widget.fetch(currentWord, "french");
+            }
+        }
+
+        // Sistema de Voz
+        function speakText(text) {
+            window.speechSynthesis.cancel();
+            let ut = new SpeechSynthesisUtterance(text);
+            ut.lang = 'fr-FR';
+            window.speechSynthesis.speak(ut);
+        }
+
+        // Guardado y Sidebar
+        function saveWord() {
+            if (!savedWords.includes(currentWord)) {
+                savedWords.push(currentWord);
+                localStorage.setItem('linguaWords', JSON.stringify(savedWords));
+                updateSidebar();
+                alert('Mot sauvegardé!');
+            }
+        }
+
+        function updateSidebar() {
+            const wList = document.getElementById('saved-words-list');
+            wList.innerHTML = savedWords.map(w => `<div>📌 ${w}</div>`).join('');
+            
+            const hList = document.getElementById('history-list');
+            hList.innerHTML = history.map(h => `<div>✓ ${h}</div>`).join('');
+        }
+
+        // Navegación de Pestañas
+        function switchTab(tab) {
+            document.getElementById('tab-reader').classList.remove('active');
+            document.getElementById('tab-exercises').classList.remove('active');
+            document.getElementById('reader-view').style.display = 'none';
+            document.getElementById('dict-panel').style.display = 'none';
+            document.getElementById('exercises-view').style.display = 'none';
+
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            
+            if(tab === 'reader') {
+                document.getElementById('reader-view').style.display = 'block';
+                if(currentWord) document.getElementById('dict-panel').style.display = 'block';
+            } else {
+                document.getElementById('exercises-view').style.display = 'block';
+                generateExercise();
+            }
+        }
+
+        // Generador de Ejercicios
+        function generateExercise() {
+            const area = document.getElementById('quiz-area');
+            if (savedWords.length < 3) {
+                area.innerHTML = "<p>Sauvegardez au moins 3 mots dans le mode lecture pour débloquer les exercices.</p>";
+                return;
+            }
+            
+            // Ejercicio simple: Seleccionar el mot correcto
+            const targetWord = savedWords[Math.floor(Math.random() * savedWords.length)];
+            
+            let optionsHTML = savedWords.slice(0,4).map(w => 
+                `<div class="quiz-option" onclick="checkAnswer('${w}', '${targetWord}')">${w}</div>`
+            ).join('');
+
+            area.innerHTML = `
+                <h3 style="margin-bottom: 20px;">Écoutez l'audio et sélectionnez le bon mot :</h3>
+                <button class="btn" onclick="speakText('${targetWord}')" style="font-size: 20px; padding: 15px 30px; background: var(--accent-light);">🔊 Écouter</button>
+                <div class="quiz-options">${optionsHTML}</div>
+            `;
+        }
+
+        function checkAnswer(selected, target) {
+            if(selected === target) {
+                alert("Correct! 🎉");
+                generateExercise();
+            } else {
+                alert("Incorrect, essayez encore. ❌");
+            }
+        }
+    </script>
+</body>
+</html>
